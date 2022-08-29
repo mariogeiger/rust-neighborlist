@@ -11,6 +11,5 @@ crate-type = ["cdylib"]
 [dependencies]
 pyo3 = { version = "0.17.1", features = ["abi3-py37"] }
 numpy = { version = "0.17.1" }
-itertools = "*"
 
 [workspace]
