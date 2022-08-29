@@ -1,0 +1,16 @@
+[package]
+name = "rust-neighborlist"
+version = "0.1.0"
+authors = ["Mario Geiger <geiger.mario@gmail.com"]
+edition = "2021"
+
+[lib]
+name = "rust_neighborlist"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.17.1", features = ["abi3-py37"] }
+numpy = { version = "0.17.1" }
+itertools = "*"
+
+[workspace]
