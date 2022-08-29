@@ -1,4 +1,4 @@
-from rust_neighborlist import neighbor_list
+from neighborlist import neighbor_list
 import numpy as np
 import ase
 import ase.neighborlist

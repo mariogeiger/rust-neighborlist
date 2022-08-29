@@ -4,14 +4,14 @@ use pyo3::{pymodule, types::PyModule, PyResult, Python};
 use std::collections::HashMap;
 
 #[pymodule]
-fn rust_neighborlist(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn neighborlist(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     fn neighbor_list(
         positions: ArrayView2<'_, f64>,
         cutoff: f64,
         self_interaction: bool,
     ) -> (Array1<i32>, Array1<i32>, Array1<f64>, Array2<f64>) {
         let n = positions.shape()[0];
-        let box_size = 1.01 * cutoff;
+        let box_size = 1.001 * cutoff;
         let mut boxes = HashMap::new();
 
         for i in 0..n {
@@ -24,10 +24,7 @@ fn rust_neighborlist(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
                 (y / box_size) as i32,
                 (z / box_size) as i32,
             );
-            if !boxes.contains_key(&key) {
-                boxes.insert(key, Vec::new());
-            }
-            boxes.get_mut(&key).unwrap().push(i);
+            boxes.entry(key).or_insert(Vec::new()).push(i);
         }
 
         let mut src: Vec<i32> = Vec::new();
@@ -77,6 +74,10 @@ fn rust_neighborlist(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
         )
     }
 
+    /// neighbor_list(positions, cutoff, /, self_interaction)
+    /// --
+    ///
+    /// Computes the neighbor list of a set of points.
     #[pyfn(m)]
     #[pyo3(name = "neighbor_list")]
     fn neighbor_list_py<'py>(

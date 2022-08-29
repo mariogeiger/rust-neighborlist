@@ -5,7 +5,7 @@ authors = ["Mario Geiger <geiger.mario@gmail.com"]
 edition = "2021"
 
 [lib]
-name = "rust_neighborlist"
+name = "neighborlist"
 crate-type = ["cdylib"]
 
 [dependencies]
