@@ -1,6 +1,11 @@
 # Neighborlist implementation in rust with python interface
 
+## Install
+```
+pip install rust-neighborlist
+```
 
+## Test
 ```python
 import numpy as np
 pos = np.random.uniform(-4.0, 3.0, (100, 3))
