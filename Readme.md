@@ -23,5 +23,7 @@ i2, j2, d2, D2 = ase.neighborlist.neighbor_list("ijdD", a, cutoff, self_interact
 # Using rust neighborlist
 from neighborlist import neighbor_list
 
-i1, j1, d1, D1 = neighbor_list(pos, cutoff, self_interaction=False)
+cell = np.eye(3)
+pbc = np.array([False, False, False])
+i1, j1, d1, D1 = neighbor_list(pos, cutoff, cell, pbc, self_interaction=False)
 ```
