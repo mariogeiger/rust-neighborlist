@@ -22,8 +22,8 @@ fn neighbor_list(
     let n = positions.shape()[0];
     let box_size = 1.001 * cutoff;
     let mut boxes: HashMap<Vector3<i32>, HashSet<(usize, Vector3<i32>)>> = HashMap::new();
-    let mut bb_min = [std::f64::MAX, std::f64::MAX, std::f64::MAX];
-    let mut bb_max = [std::f64::MIN, std::f64::MIN, std::f64::MIN];
+    let mut bb_lo = Vector3::new(std::f64::MAX, std::f64::MAX, std::f64::MAX);
+    let mut bb_hi = Vector3::new(std::f64::MIN, std::f64::MIN, std::f64::MIN);
 
     let cell: Matrix3<f64> = Matrix3::new(
         cell[(0, 0)],
@@ -48,28 +48,13 @@ fn neighbor_list(
             .or_insert(HashSet::new())
             .insert((i, Vector3::zeros()));
 
-        bb_min[0] = pos[0].min(bb_min[0]);
-        bb_min[1] = pos[1].min(bb_min[1]);
-        bb_min[2] = pos[2].min(bb_min[2]);
-
-        bb_max[0] = pos[0].max(bb_max[0]);
-        bb_max[1] = pos[1].max(bb_max[1]);
-        bb_max[2] = pos[2].max(bb_max[2]);
+        bb_lo = bb_lo.zip_map(&pos, |x, y| x.min(y));
+        bb_hi = bb_hi.zip_map(&pos, |x, y| x.max(y));
     }
 
-    let us_amplitude = [
-        ((bb_max[0] - bb_min[0] + box_size) / cell[(0, 0)].max(cell[(1, 0)].max(cell[(2, 0)])))
-            .ceil() as i32,
-        ((bb_max[1] - bb_min[1] + box_size) / cell[(0, 1)].max(cell[(1, 1)].max(cell[(2, 1)])))
-            .ceil() as i32,
-        ((bb_max[2] - bb_min[2] + box_size) / cell[(0, 2)].max(cell[(1, 2)].max(cell[(2, 2)])))
-            .ceil() as i32,
-    ];
+    let approx_num_shifts = (bb_hi - bb_lo).map(|x| x + box_size).product() / cell.determinant();
 
-    let n_tot_us =
-        (2 * us_amplitude[0] + 1) * (2 * us_amplitude[1] + 1) * (2 * us_amplitude[2] + 1);
-
-    if n_tot_us as usize > boxes.len() || true {
+    if approx_num_shifts as usize > boxes.len() {
         // Less boxes than possible shifts
 
         for i in 0..n {
@@ -77,22 +62,28 @@ fn neighbor_list(
                 Vector3::new(positions[(i, 0)], positions[(i, 1)], positions[(i, 2)]);
 
             for (&key, _) in boxes.clone().iter() {
-                // solve: key * box_size - pos <= us @ cell < (key + 1) * box_size - pos
-                // TODO: solve this problem using linear programming?
+                // solve: (key - 1) * box_size - pos <= us @ cell < (key + 2) * box_size - pos
+                let key: Vector3<f64> = key.map(|x| x as f64);
+                let b_lo: Vector3<f64> = key.map(|x| x - 1.0) * box_size - pos;
+                let b_hi: Vector3<f64> = key.map(|x| x + 2.0) * box_size - pos;
 
-                let us_lo: Vector3<i32> = (pinv.transpose()
-                    * (Vector3::new(key[0] - 1, key[1] - 1, key[2] - 1).map(|x| x as f64)
-                        * box_size
-                        - pos))
-                    .map(|x| x.ceil() as i32);
+                let mut us_lo: Vector3<f64> = Vector3::zeros();
+                let mut us_hi: Vector3<f64> = Vector3::zeros();
 
-                let us_hi: Vector3<i32> = (pinv.transpose()
-                    * (Vector3::new(key[0] - 1, key[1] - 1, key[2] - 1).map(|x| x as f64)
-                        * box_size
-                        - pos))
-                    .map(|x| x.ceil() as i32);
+                for i in 0..3 {
+                    for j in 0..3 {
+                        if pinv[(i, j)] < 0.0 {
+                            us_lo[i] += pinv[(i, j)] * b_hi[j];
+                            us_hi[i] += pinv[(i, j)] * b_lo[j];
+                        } else {
+                            us_lo[i] += pinv[(i, j)] * b_lo[j];
+                            us_hi[i] += pinv[(i, j)] * b_hi[j];
+                        }
+                    }
+                }
 
-                // println!("us: {:?} - {:?}", us_lo, us_hi);
+                let us_lo: Vector3<i32> = us_lo.map(|x| x.ceil() as i32);
+                let us_hi: Vector3<i32> = us_hi.map(|x| x.ceil() as i32);
 
                 for u0 in us_lo[0]..us_hi[0] {
                     if pbc[0] == false && (u0 != 0) {
@@ -122,7 +113,62 @@ fn neighbor_list(
             }
         }
     } else {
-        // Not implemented yet
+        // less shifts than possible boxes: iterate over shifts
+
+        let b_lo: Vector3<f64> = bb_lo.map(|x| x - box_size);
+        let b_hi: Vector3<f64> = bb_hi.map(|x| x + box_size);
+
+        let mut us_lo: Vector3<f64> = Vector3::zeros();
+        let mut us_hi: Vector3<f64> = Vector3::zeros();
+
+        for i in 0..3 {
+            for j in 0..3 {
+                if pinv[(i, j)] < 0.0 {
+                    us_lo[i] += pinv[(i, j)] * b_hi[j];
+                    us_hi[i] += pinv[(i, j)] * b_lo[j];
+                } else {
+                    us_lo[i] += pinv[(i, j)] * b_lo[j];
+                    us_hi[i] += pinv[(i, j)] * b_hi[j];
+                }
+            }
+        }
+
+        let us_lo: Vector3<i32> = us_lo.map(|x| x.ceil() as i32);
+        let us_hi: Vector3<i32> = us_hi.map(|x| x.ceil() as i32);
+
+        for u0 in us_lo[0]..us_hi[0] {
+            if pbc[0] == false && (u0 != 0) {
+                continue;
+            }
+            for u1 in us_lo[1]..us_hi[1] {
+                if pbc[1] == false && (u1 != 0) {
+                    continue;
+                }
+                for u2 in us_lo[2]..us_hi[2] {
+                    if pbc[2] == false && (u2 != 0) {
+                        continue;
+                    }
+
+                    let us: Vector3<i32> = Vector3::new(u0, u1, u2);
+                    if us != Vector3::zeros() {
+                        for i in 0..n {
+                            let pos: Vector3<f64> = Vector3::new(
+                                positions[(i, 0)],
+                                positions[(i, 1)],
+                                positions[(i, 2)],
+                            );
+
+                            let shifted_pos = pos + cell.transpose() * us.map(|x| x as f64);
+                            let shifted_key = (shifted_pos / box_size).map(|x| x as i32);
+                            boxes
+                                .entry(shifted_key)
+                                .or_insert(HashSet::new())
+                                .insert((i, us));
+                        }
+                    }
+                }
+            }
+        }
     }
 
     let mut src: Vec<i32> = Vec::new();
