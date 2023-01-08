@@ -135,7 +135,7 @@ fn neighbor_list(
 
     if let Some(cell_inv) = cell.try_inverse() {
         let approx_num_shifts =
-            (bb_hi - bb_lo).map(|x| x + box_size).product() / cell.determinant();
+            (bb_hi - bb_lo).map(|x| x + box_size).product() / cell.determinant().abs();
 
         if approx_num_shifts > boxes.len() as f64 {
             // Less boxes than possible shifts
