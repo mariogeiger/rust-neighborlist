@@ -1,7 +1,8 @@
-from neighborlist import neighbor_list
-import numpy as np
 import ase
 import ase.neighborlist
+import numpy as np
+import pytest
+from neighborlist import neighbor_list
 
 
 def compare_with_ase(pos, cutoff, cell, pbc):
@@ -32,7 +33,9 @@ def compare_with_ase(pos, cutoff, cell, pbc):
     np.testing.assert_allclose(S1, S2)
 
 
-def test_with_no_pbc():
+@pytest.mark.parametrize("seed", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+def test_with_no_pbc(seed):
+    np.random.seed(seed)
     compare_with_ase(
         pos=np.random.uniform(-4.0, 3.0, (100, 3)),
         cutoff=2.0,
@@ -41,7 +44,9 @@ def test_with_no_pbc():
     )
 
 
-def test_with_pbc_thin_skin():
+@pytest.mark.parametrize("seed", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+def test_with_pbc_thin_skin(seed):
+    np.random.seed(seed)
     compare_with_ase(
         pos=np.random.uniform(0.0, 1.0, (100, 3)),
         cutoff=0.2,
@@ -50,7 +55,9 @@ def test_with_pbc_thin_skin():
     )
 
 
-def test_with_pbc_thick_skin():
+@pytest.mark.parametrize("seed", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+def test_with_pbc_thick_skin(seed):
+    np.random.seed(seed)
     compare_with_ase(
         pos=np.random.uniform(0.0, 1.0, (20, 3)),
         cutoff=1.1,
@@ -59,15 +66,17 @@ def test_with_pbc_thick_skin():
     )
 
 
-def test_with_nontrivial_cell():
+@pytest.mark.parametrize("seed", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+def test_with_nontrivial_cell(seed):
+    np.random.seed(seed)
     compare_with_ase(
         pos=np.random.uniform(0.0, 1.0, (20, 3)),
         cutoff=1.1,
         cell=np.array(
             [
-                [-1.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0],
-                [0.0, 0.0, 1.0],
+                [0.0, -1.0, 0.1],
+                [-1.0, 0.0, 0.1],
+                [0.0, 0.0, 1.2],
             ]
         ),
         pbc=np.array([True, True, True]),
