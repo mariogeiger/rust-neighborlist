@@ -3,7 +3,7 @@ use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray2};
 use pyo3::{pymodule, types::PyModule, PyResult, Python};
 use std::collections::HashMap;
 
-fn neighbor_list(
+fn neighbor_list_ijdd(
     positions: ArrayView2<'_, f64>,
     cutoff: f64,
     self_interaction: bool,
@@ -79,8 +79,8 @@ fn neighborlist(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     ///
     /// Computes the neighbor list of a set of points.
     #[pyfn(m)]
-    #[pyo3(name = "neighbor_list")]
-    fn neighbor_list_py<'py>(
+    #[pyo3(name = "neighbor_list_ijdD")]
+    fn neighbor_list_ijdd_py<'py>(
         py: Python<'py>,
         positions: PyReadonlyArray2<'_, f64>,
         cutoff: f64,
@@ -92,7 +92,7 @@ fn neighborlist(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
         &'py PyArray2<f64>,
     ) {
         let positions = positions.as_array();
-        let (src, dst, dist, rel) = neighbor_list(positions.view(), cutoff, self_interaction);
+        let (src, dst, dist, rel) = neighbor_list_ijdd(positions.view(), cutoff, self_interaction);
         (
             src.into_pyarray(py),
             dst.into_pyarray(py),

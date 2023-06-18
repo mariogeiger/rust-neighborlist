@@ -1,13 +1,13 @@
-from neighborlist import neighbor_list
+import neighborlist
 import numpy as np
 import ase
 import ase.neighborlist
 
 
-def test_neighbor_list():
+def test_neighbor_list_ijdD():
     pos = np.random.uniform(-4.0, 3.0, (100, 3))
     cutoff = 2.0
-    i1, j1, d1, D1 = neighbor_list(pos, cutoff, False)
+    i1, j1, d1, D1 = neighborlist.neighbor_list_ijdD(pos, cutoff, False)
 
     i = np.lexsort((j1, i1))
     i1 = i1[i]
