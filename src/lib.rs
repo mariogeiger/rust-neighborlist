@@ -4,7 +4,7 @@ use pyo3::{pymodule, types::PyModule, PyResult, Python};
 use std::collections::HashMap;
 
 fn neighbor_list_ijdd(
-    positions: ArrayView2<'_, f64>,
+    positions: ArrayView2<f64>,
     cutoff: f64,
     self_interaction: bool,
 ) -> (Array1<i32>, Array1<i32>, Array1<f64>, Array2<f64>) {
@@ -17,11 +17,11 @@ fn neighbor_list_ijdd(
         let y = positions[(i, 1)];
         let z = positions[(i, 2)];
 
-        let key = (
+        let key = [
             (x / box_size) as i32,
             (y / box_size) as i32,
             (z / box_size) as i32,
-        );
+        ];
         boxes.entry(key).or_insert(Vec::new()).push(i);
     }
 
@@ -31,15 +31,15 @@ fn neighbor_list_ijdd(
     let mut rel: Vec<[f64; 3]> = Vec::new();
 
     for (&key, value) in boxes.iter() {
-        for &i in value {
-            let ix = positions[(i, 0)];
-            let iy = positions[(i, 1)];
-            let iz = positions[(i, 2)];
-            for sx in -1..2 {
-                for sy in -1..2 {
-                    for sz in -1..2 {
-                        let skey = (key.0 + sx, key.1 + sy, key.2 + sz);
-                        if let Some(svalue) = boxes.get(&skey) {
+        for sx in -1..2 {
+            for sy in -1..2 {
+                for sz in -1..2 {
+                    let skey = [key[0] + sx, key[1] + sy, key[2] + sz];
+                    if let Some(svalue) = boxes.get(&skey) {
+                        for &i in value {
+                            let ix = positions[(i, 0)];
+                            let iy = positions[(i, 1)];
+                            let iz = positions[(i, 2)];
                             for &j in svalue {
                                 let jx = positions[(j, 0)];
                                 let jy = positions[(j, 1)];
@@ -72,9 +72,69 @@ fn neighbor_list_ijdd(
     )
 }
 
+fn neighbor_list_ij(
+    positions: ArrayView2<f64>,
+    cutoff: f64,
+    self_interaction: bool,
+) -> (Array1<i32>, Array1<i32>) {
+    let n = positions.shape()[0];
+    let box_size = 1.001 * cutoff;
+    let mut boxes = HashMap::new();
+
+    for i in 0..n {
+        let x = positions[(i, 0)];
+        let y = positions[(i, 1)];
+        let z = positions[(i, 2)];
+
+        let key = [
+            (x / box_size) as i32,
+            (y / box_size) as i32,
+            (z / box_size) as i32,
+        ];
+        boxes.entry(key).or_insert(Vec::new()).push(i);
+    }
+
+    let mut src: Vec<i32> = Vec::new();
+    let mut dst: Vec<i32> = Vec::new();
+
+    for (&key, value) in boxes.iter() {
+        for sx in -1..2 {
+            for sy in -1..2 {
+                for sz in -1..2 {
+                    let skey = [key[0] + sx, key[1] + sy, key[2] + sz];
+                    if let Some(svalue) = boxes.get(&skey) {
+                        for &i in value {
+                            let ix = positions[(i, 0)];
+                            let iy = positions[(i, 1)];
+                            let iz = positions[(i, 2)];
+                            for &j in svalue {
+                                let jx = positions[(j, 0)];
+                                let jy = positions[(j, 1)];
+                                let jz = positions[(j, 2)];
+                                let dx = jx - ix;
+                                let dy = jy - iy;
+                                let dz = jz - iz;
+                                let r2 = dx * dx + dy * dy + dz * dz;
+                                if r2 < cutoff * cutoff {
+                                    if self_interaction || i != j {
+                                        src.push(i as i32);
+                                        dst.push(j as i32);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    (Array1::from(src), Array1::from(dst))
+}
+
 #[pymodule]
 fn neighborlist(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    /// neighbor_list(positions, cutoff, /, self_interaction)
+    /// neighbor_list_ijdD(positions, cutoff, /, self_interaction)
     /// --
     ///
     /// Computes the neighbor list of a set of points.
@@ -82,7 +142,7 @@ fn neighborlist(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     #[pyo3(name = "neighbor_list_ijdD")]
     fn neighbor_list_ijdd_py<'py>(
         py: Python<'py>,
-        positions: PyReadonlyArray2<'_, f64>,
+        positions: PyReadonlyArray2<f64>,
         cutoff: f64,
         self_interaction: bool,
     ) -> (
@@ -91,14 +151,31 @@ fn neighborlist(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
         &'py PyArray1<f64>,
         &'py PyArray2<f64>,
     ) {
-        let positions = positions.as_array();
-        let (src, dst, dist, rel) = neighbor_list_ijdd(positions.view(), cutoff, self_interaction);
+        let positions: ArrayView2<f64> = positions.as_array();
+        let (src, dst, dist, rel) = neighbor_list_ijdd(positions, cutoff, self_interaction);
         (
             src.into_pyarray(py),
             dst.into_pyarray(py),
             dist.into_pyarray(py),
             rel.into_pyarray(py),
         )
+    }
+
+    /// neighbor_list_ij(positions, cutoff, /, self_interaction)
+    /// --
+    ///
+    /// Computes the neighbor list of a set of points.
+    #[pyfn(m)]
+    #[pyo3(name = "neighbor_list_ij")]
+    fn neighbor_list_ij_py<'py>(
+        py: Python<'py>,
+        positions: PyReadonlyArray2<f64>,
+        cutoff: f64,
+        self_interaction: bool,
+    ) -> (&'py PyArray1<i32>, &'py PyArray1<i32>) {
+        let positions: ArrayView2<f64> = positions.as_array();
+        let (src, dst) = neighbor_list_ij(positions, cutoff, self_interaction);
+        (src.into_pyarray(py), dst.into_pyarray(py))
     }
 
     Ok(())
