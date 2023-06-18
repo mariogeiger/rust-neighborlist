@@ -1,5 +1,11 @@
 # Neighborlist implementation in rust with python interface
 
+## Only faster than [matscipy](https://github.com/libAtoms/matscipy/tree/master) in few cases
+This rust implementation is only faster than matscipy at high density.
+i.e. when there is a lot of points within the cutoff distance.
+
+![image](https://github.com/mariogeiger/rust-neighborlist/assets/333780/d913b139-52aa-4cff-85c7-99da1c90582c)
+
 ## Install
 ```
 pip install rust-neighborlist
