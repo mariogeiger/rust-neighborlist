@@ -4,7 +4,7 @@
 This rust implementation is only faster than matscipy at high density.
 i.e. when there is a lot of points within the cutoff distance.
 
-![image](https://github.com/mariogeiger/rust-neighborlist/assets/333780/d913b139-52aa-4cff-85c7-99da1c90582c)
+![image](https://github.com/mariogeiger/rust-neighborlist/assets/333780/d4cacfc3-d509-4b46-9ba2-efec7fe42867)
 
 ## Install
 ```
