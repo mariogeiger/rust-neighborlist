@@ -12,18 +12,16 @@ pos = np.random.uniform(-4.0, 3.0, (100, 3))
 cutoff = 2.0
 
 
-# Using ase
-import ase
-import ase.neighborlist
+# Using matscipy.neighbours
+from matscipy.neighbours import neighbour_list
 
-a = ase.Atoms(positions=pos)
-i2, j2, d2, D2 = ase.neighborlist.neighbor_list("ijdD", a, cutoff, self_interaction=False)
+i, j = neighbour_list('ij', positions=pos, cutoff=cutoff)
 
 
 # Using rust neighborlist
-from neighborlist import neighbor_list
+from neighborlist import neighbor_list_ij
 
-i1, j1, d1, D1 = neighbor_list(pos, cutoff, self_interaction=False)
+i, j = neighbor_list_ij(pos, cutoff, self_interaction=False)
 ```
 
 

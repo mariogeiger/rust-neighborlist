@@ -1,7 +1,6 @@
 import neighborlist
 import numpy as np
-import ase
-import ase.neighborlist
+from matscipy.neighbours import neighbour_list
 
 
 def test_neighbor_list_ijdD():
@@ -15,8 +14,7 @@ def test_neighbor_list_ijdD():
     d1 = d1[i]
     D1 = D1[i]
 
-    a = ase.Atoms(positions=pos)
-    i2, j2, d2, D2 = ase.neighborlist.neighbor_list("ijdD", a, cutoff, False)
+    i2, j2, d2, D2 = neighbour_list("ijdD", positions=pos, cutoff=cutoff)
 
     i = np.lexsort((j2, i2))
     i2 = i2[i]
@@ -29,3 +27,23 @@ def test_neighbor_list_ijdD():
     np.testing.assert_array_equal(j1, j2)
     np.testing.assert_allclose(d1, d2)
     np.testing.assert_allclose(D1, D2)
+
+
+def test_neighbor_list_ij():
+    pos = np.random.uniform(-10.0, 10.0, (1000, 3))
+    cutoff = 2.0
+    i1, j1 = neighborlist.neighbor_list_ij(pos, cutoff, False)
+
+    i = np.lexsort((j1, i1))
+    i1 = i1[i]
+    j1 = j1[i]
+
+    i2, j2 = neighbour_list("ij", positions=pos, cutoff=cutoff)
+
+    i = np.lexsort((j2, i2))
+    i2 = i2[i]
+    j2 = j2[i]
+
+    assert len(i1) == len(i2)
+    np.testing.assert_array_equal(i1, i2)
+    np.testing.assert_array_equal(j1, j2)

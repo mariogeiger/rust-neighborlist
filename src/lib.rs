@@ -1,7 +1,8 @@
 use numpy::ndarray::{Array1, Array2, ArrayView2};
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray2};
 use pyo3::{pymodule, types::PyModule, PyResult, Python};
-use std::collections::HashMap;
+
+mod boxes;
 
 fn neighbor_list_ijdd(
     positions: ArrayView2<f64>,
@@ -9,20 +10,14 @@ fn neighbor_list_ijdd(
     self_interaction: bool,
 ) -> (Array1<i32>, Array1<i32>, Array1<f64>, Array2<f64>) {
     let n = positions.shape()[0];
-    let box_size = 1.001 * cutoff;
-    let mut boxes = HashMap::new();
+    let mut boxes = boxes::Boxes::new(1.001 * cutoff);
 
     for i in 0..n {
         let x = positions[(i, 0)];
         let y = positions[(i, 1)];
         let z = positions[(i, 2)];
 
-        let key = [
-            (x / box_size) as i32,
-            (y / box_size) as i32,
-            (z / box_size) as i32,
-        ];
-        boxes.entry(key).or_insert(Vec::new()).push(i);
+        boxes.insert(i, x, y, z);
     }
 
     let mut src: Vec<i32> = Vec::new();
@@ -31,33 +26,18 @@ fn neighbor_list_ijdd(
     let mut rel: Vec<[f64; 3]> = Vec::new();
 
     for (&key, value) in boxes.iter() {
-        for sx in -1..2 {
-            for sy in -1..2 {
-                for sz in -1..2 {
-                    let skey = [key[0] + sx, key[1] + sy, key[2] + sz];
-                    if let Some(svalue) = boxes.get(&skey) {
-                        for &i in value {
-                            let ix = positions[(i, 0)];
-                            let iy = positions[(i, 1)];
-                            let iz = positions[(i, 2)];
-                            for &j in svalue {
-                                let jx = positions[(j, 0)];
-                                let jy = positions[(j, 1)];
-                                let jz = positions[(j, 2)];
-                                let dx = jx - ix;
-                                let dy = jy - iy;
-                                let dz = jz - iz;
-                                let r2 = dx * dx + dy * dy + dz * dz;
-                                if r2 < cutoff * cutoff {
-                                    if self_interaction || i != j {
-                                        src.push(i as i32);
-                                        dst.push(j as i32);
-                                        dist.push(r2.sqrt());
-                                        rel.push([dx, dy, dz]);
-                                    }
-                                }
-                            }
-                        }
+        for &j in boxes.iter_neighbors(&key) {
+            for &i in value {
+                let dx = positions[(j, 0)] - positions[(i, 0)];
+                let dy = positions[(j, 1)] - positions[(i, 1)];
+                let dz = positions[(j, 2)] - positions[(i, 2)];
+                let r2 = dx * dx + dy * dy + dz * dz;
+                if r2 < cutoff * cutoff {
+                    if self_interaction || i != j {
+                        src.push(i as i32);
+                        dst.push(j as i32);
+                        dist.push(r2.sqrt());
+                        rel.push([dx, dy, dz]);
                     }
                 }
             }
@@ -78,51 +58,29 @@ fn neighbor_list_ij(
     self_interaction: bool,
 ) -> (Array1<i32>, Array1<i32>) {
     let n = positions.shape()[0];
-    let box_size = 1.001 * cutoff;
-    let mut boxes = HashMap::new();
+    let mut boxes = boxes::Boxes::new(1.001 * cutoff);
 
     for i in 0..n {
         let x = positions[(i, 0)];
         let y = positions[(i, 1)];
         let z = positions[(i, 2)];
 
-        let key = [
-            (x / box_size) as i32,
-            (y / box_size) as i32,
-            (z / box_size) as i32,
-        ];
-        boxes.entry(key).or_insert(Vec::new()).push(i);
+        boxes.insert(i, x, y, z);
     }
 
     let mut src: Vec<i32> = Vec::new();
     let mut dst: Vec<i32> = Vec::new();
 
     for (&key, value) in boxes.iter() {
-        for sx in -1..2 {
-            for sy in -1..2 {
-                for sz in -1..2 {
-                    let skey = [key[0] + sx, key[1] + sy, key[2] + sz];
-                    if let Some(svalue) = boxes.get(&skey) {
-                        for &i in value {
-                            let ix = positions[(i, 0)];
-                            let iy = positions[(i, 1)];
-                            let iz = positions[(i, 2)];
-                            for &j in svalue {
-                                let jx = positions[(j, 0)];
-                                let jy = positions[(j, 1)];
-                                let jz = positions[(j, 2)];
-                                let dx = jx - ix;
-                                let dy = jy - iy;
-                                let dz = jz - iz;
-                                let r2 = dx * dx + dy * dy + dz * dz;
-                                if r2 < cutoff * cutoff {
-                                    if self_interaction || i != j {
-                                        src.push(i as i32);
-                                        dst.push(j as i32);
-                                    }
-                                }
-                            }
-                        }
+        for &j in boxes.iter_neighbors(&key) {
+            for &i in value {
+                let dx = positions[(j, 0)] - positions[(i, 0)];
+                let dy = positions[(j, 1)] - positions[(i, 1)];
+                let dz = positions[(j, 2)] - positions[(i, 2)];
+                if dx * dx + dy * dy + dz * dz < cutoff * cutoff {
+                    if self_interaction || i != j {
+                        src.push(i as i32);
+                        dst.push(j as i32);
                     }
                 }
             }
