@@ -25,3 +25,16 @@ from neighborlist import neighbor_list
 
 i1, j1, d1, D1 = neighbor_list(pos, cutoff, self_interaction=False)
 ```
+
+
+## Install from source
+```
+git clone https://github.com/mariogeiger/rust-neighborlist.git
+cd rust-neighborlist
+pip install .
+```
+
+## Publish to pypi
+```
+maturin publish
+```
