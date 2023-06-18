@@ -10,7 +10,7 @@ fn neighbor_list_ijdd(
     self_interaction: bool,
 ) -> (Array1<i32>, Array1<i32>, Array1<f64>, Array2<f64>) {
     let n = positions.shape()[0];
-    let mut boxes = boxes::Boxes::new(1.001 * cutoff);
+    let mut boxes = boxes::Boxes::new(cutoff);
 
     for i in 0..n {
         let x = positions[(i, 0)];
@@ -58,7 +58,7 @@ fn neighbor_list_ij(
     self_interaction: bool,
 ) -> (Array1<i32>, Array1<i32>) {
     let n = positions.shape()[0];
-    let mut boxes = boxes::Boxes::new(1.001 * cutoff);
+    let mut boxes = boxes::Boxes::new(cutoff);
 
     for i in 0..n {
         let x = positions[(i, 0)];

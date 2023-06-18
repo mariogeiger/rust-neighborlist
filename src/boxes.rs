@@ -6,9 +6,9 @@ pub struct Boxes {
 }
 
 impl Boxes {
-    pub fn new(box_size: f64) -> Self {
+    pub fn new(cutoff: f64) -> Self {
         Self {
-            box_size,
+            box_size: 1.001 * cutoff,
             boxes: HashMap::new(),
         }
     }
@@ -28,9 +28,10 @@ impl Boxes {
 
     pub fn iter_neighbors(&self, key: &[i32; 3]) -> impl Iterator<Item = &usize> {
         let mut neighbors = Vec::new();
-        for sx in -1..2 {
-            for sy in -1..2 {
-                for sz in -1..2 {
+        let a = 1;
+        for sx in -a..a + 1 {
+            for sy in -a..a + 1 {
+                for sz in -a..a + 1 {
                     let skey = [key[0] + sx, key[1] + sy, key[2] + sz];
                     if let Some(svalue) = self.boxes.get(&skey) {
                         neighbors.extend(svalue);
