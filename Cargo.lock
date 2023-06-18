@@ -240,7 +240,7 @@ dependencies = [
 
 [[package]]
 name = "rust-neighborlist"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "numpy",
  "pyo3",
