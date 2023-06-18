@@ -31,12 +31,12 @@ fn neighbor_list_ijdd(
                 let dx = positions[(j, 0)] - positions[(i, 0)];
                 let dy = positions[(j, 1)] - positions[(i, 1)];
                 let dz = positions[(j, 2)] - positions[(i, 2)];
-                let r2 = dx * dx + dy * dy + dz * dz;
-                if r2 < cutoff * cutoff {
+                let d2 = dx * dx + dy * dy + dz * dz;
+                if d2 < cutoff * cutoff {
                     if self_interaction || i != j {
                         src.push(i as i32);
                         dst.push(j as i32);
-                        dist.push(r2.sqrt());
+                        dist.push(d2.sqrt());
                         rel.push([dx, dy, dz]);
                     }
                 }
@@ -77,7 +77,8 @@ fn neighbor_list_ij(
                 let dx = positions[(j, 0)] - positions[(i, 0)];
                 let dy = positions[(j, 1)] - positions[(i, 1)];
                 let dz = positions[(j, 2)] - positions[(i, 2)];
-                if dx * dx + dy * dy + dz * dz < cutoff * cutoff {
+                let d2 = dx * dx + dy * dy + dz * dz;
+                if d2 < cutoff * cutoff {
                     if self_interaction || i != j {
                         src.push(i as i32);
                         dst.push(j as i32);
