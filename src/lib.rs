@@ -25,8 +25,8 @@ fn neighbor_list_ijdd(
     let mut dist: Vec<f64> = Vec::new();
     let mut rel: Vec<[f64; 3]> = Vec::new();
 
-    for (&key, value) in boxes.iter() {
-        for &j in boxes.iter_neighbors(&key) {
+    for (key, value) in boxes.iter() {
+        for &j in boxes.iter_neighbors(key) {
             for &i in value {
                 let dx = positions[(j, 0)] - positions[(i, 0)];
                 let dy = positions[(j, 1)] - positions[(i, 1)];
@@ -71,8 +71,8 @@ fn neighbor_list_ij(
     let mut src: Vec<i32> = Vec::new();
     let mut dst: Vec<i32> = Vec::new();
 
-    for (&key, value) in boxes.iter() {
-        for &j in boxes.iter_neighbors(&key) {
+    for (key, value) in boxes.iter() {
+        for &j in boxes.iter_neighbors(key) {
             for &i in value {
                 let dx = positions[(j, 0)] - positions[(i, 0)];
                 let dy = positions[(j, 1)] - positions[(i, 1)];
